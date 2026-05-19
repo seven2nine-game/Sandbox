@@ -103,15 +103,15 @@ function renderBonsai() {
       </header>
 
       <section class="mx-auto grid min-h-0 w-full max-w-[62rem] grid-rows-[auto_1fr_auto] overflow-hidden rounded-lg border border-[#2f3842] bg-[#181d22]" aria-live="polite">
-        <div id="status" class="border-b border-[#2f3842] bg-[#111519] px-4 py-3 text-[#b9c6d3]">モデル未ロード</div>
+        <div id="status" class="border-b border-[#2f3842] bg-[#111519] px-4 py-3 text-[#b9c6d3]">Model not loaded</div>
         <div id="messages" class="grid min-h-[22rem] content-start gap-3 overflow-auto p-4">
           <article class="${messageBase}">
             <strong class="mb-1 block text-[0.82rem] text-[#98c6b5]">Bonsai</strong>
-            <p class="m-0 whitespace-pre-wrap leading-[1.55]">WebGPU 対応ブラウザでモデルをロードすると、ブラウザ内で生成します。</p>
+            <p class="m-0 whitespace-pre-wrap leading-[1.55]">Load the model in a WebGPU-enabled browser to generate locally.</p>
           </article>
         </div>
         <form id="composer" class="grid gap-3 border-t border-[#2f3842] p-4">
-          <textarea id="prompt" class="w-full resize-y rounded-lg border border-[#35404a] bg-[#111519] p-3 text-[#f8fbff] disabled:text-[#8995a1]" rows="3" placeholder="短いプロンプトを入力" disabled></textarea>
+          <textarea id="prompt" class="w-full resize-y rounded-lg border border-[#35404a] bg-[#111519] p-3 text-[#f8fbff] disabled:text-[#8995a1]" rows="3" placeholder="Enter a short prompt" disabled></textarea>
           <div class="flex flex-wrap gap-2">
             <button id="load" class="${buttonClass}" type="button">Load model</button>
             <button id="send" class="${buttonClass}" type="submit" disabled>Generate</button>
@@ -186,7 +186,7 @@ function setupBonsaiPage() {
     if (type === 'ready') {
       loading = false;
       ready = true;
-      setStatus('モデルロード完了');
+      setStatus('Model loaded');
       setControls();
       promptInput.focus();
     }
@@ -208,7 +208,7 @@ function setupBonsaiPage() {
       pendingResponse = '';
       generating = false;
       activeMessage = null;
-      setStatus('生成完了');
+      setStatus('Generation complete');
       setControls();
     }
 
@@ -225,11 +225,11 @@ function setupBonsaiPage() {
 
   loadButton.addEventListener('click', () => {
     if (!navigator.gpu) {
-      setStatus('このブラウザは WebGPU に対応していません');
+      setStatus('This browser does not support WebGPU');
       return;
     }
     loading = true;
-    setStatus('モデルロード開始');
+    setStatus('Loading model');
     setControls();
     ensureWorker().postMessage({ type: 'load' });
   });
@@ -246,7 +246,7 @@ function setupBonsaiPage() {
     pendingResponse = '';
     promptInput.value = '';
     generating = true;
-    setStatus('生成中');
+    setStatus('Generating');
     setControls();
     ensureWorker().postMessage({ type: 'generate', prompt, history });
   });
@@ -255,7 +255,7 @@ function setupBonsaiPage() {
 
   stopButton.addEventListener('click', () => {
     ensureWorker().postMessage({ type: 'stop' });
-    setStatus('停止中');
+    setStatus('Stopping');
   });
 
   resetButton.addEventListener('click', () => {
@@ -270,11 +270,11 @@ function setupBonsaiPage() {
     conversation = [];
     pendingPrompt = '';
     pendingResponse = '';
-    setStatus('モデル未ロード');
+    setStatus('Model not loaded');
     messages.innerHTML = `
       <article class="${messageBase}">
         <strong class="mb-1 block text-[0.82rem] text-[#98c6b5]">Bonsai</strong>
-        <p class="m-0 whitespace-pre-wrap leading-[1.55]">WebGPU 対応ブラウザでモデルをロードすると、ブラウザ内で生成します。</p>
+        <p class="m-0 whitespace-pre-wrap leading-[1.55]">Load the model in a WebGPU-enabled browser to generate locally.</p>
       </article>
     `;
     setControls();
