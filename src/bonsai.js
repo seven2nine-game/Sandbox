@@ -64,6 +64,26 @@ const setControls = () => {
   stopButton.disabled = !generating;
 };
 
+const terminateWorker = () => {
+  if (!worker) return;
+  worker.terminate();
+  worker = null;
+};
+
+const resetRuntimeState = ({ clearConversation = false } = {}) => {
+  loading = false;
+  ready = false;
+  generating = false;
+  activeMessage = null;
+  pendingPrompt = '';
+  pendingResponse = '';
+  if (clearConversation) {
+    conversation = [];
+  }
+  setStatus('Model not loaded');
+  setControls();
+};
+
 const ensureWorker = () => {
   if (worker) return worker;
   worker = new Worker(new URL('./bonsai-worker.js', import.meta.url), {
@@ -169,32 +189,29 @@ stopButton.addEventListener('click', () => {
 });
 
 resetButton.addEventListener('click', () => {
-  if (worker) {
-    worker.terminate();
-    worker = null;
-  }
-  loading = false;
-  ready = false;
-  generating = false;
-  activeMessage = null;
-  conversation = [];
-  pendingPrompt = '';
-  pendingResponse = '';
-  setStatus('Model not loaded');
+  terminateWorker();
+  resetRuntimeState({ clearConversation: true });
   messages.innerHTML = `
     <article class="${messageBase}">
       <strong class="mb-1 block text-[0.82rem] text-[#98c6b5]">Bonsai</strong>
       <p class="m-0 whitespace-pre-wrap leading-[1.55]">Load the model in a WebGPU-enabled browser to generate locally.</p>
     </article>
   `;
-  setControls();
 });
 
-window.addEventListener('pagehide', () => {
+window.addEventListener('pagehide', (event) => {
+  terminateWorker();
+  if (event.persisted) {
+    resetRuntimeState();
+    return;
+  }
   disposed = true;
-  if (worker) {
-    worker.terminate();
-    worker = null;
+});
+
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) {
+    disposed = false;
+    resetRuntimeState();
   }
 });
 
