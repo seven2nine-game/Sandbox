@@ -11,6 +11,8 @@ const routes = {
   '/bonsai': renderBonsai,
 };
 
+let cleanupCurrentRoute = () => {};
+
 const pageBackground =
   'min-h-screen bg-[#121417] bg-[linear-gradient(135deg,rgba(60,96,91,0.2),transparent_36rem)] text-[#eef2f8]';
 const panelCard = 'rounded-lg border border-[#313a43] bg-[#1c2228] text-[#f8fbff]';
@@ -43,8 +45,14 @@ function navigate(path) {
 }
 
 function render() {
+  cleanupCurrentRoute();
+  cleanupCurrentRoute = () => {};
+
   const route = routes[currentRoutePath()] ?? renderNotFound;
-  route();
+  const cleanup = route();
+  if (typeof cleanup === 'function') {
+    cleanupCurrentRoute = cleanup;
+  }
 }
 
 function linkHandler(event) {
@@ -123,7 +131,7 @@ function renderBonsai() {
     </main>
   `;
 
-  setupBonsaiPage();
+  return setupBonsaiPage();
 }
 
 function setupBonsaiPage() {
@@ -144,6 +152,7 @@ function setupBonsaiPage() {
   let conversation = [];
   let pendingPrompt = '';
   let pendingResponse = '';
+  let disposed = false;
 
   const setStatus = (text) => {
     status.textContent = text;
@@ -176,6 +185,8 @@ function setupBonsaiPage() {
   };
 
   const handleWorkerMessage = (event) => {
+    if (disposed) return;
+
     const { type, text, progress, error } = event.data;
 
     if (type === 'loading') {
@@ -281,6 +292,14 @@ function setupBonsaiPage() {
   });
 
   setControls();
+
+  return () => {
+    disposed = true;
+    if (worker) {
+      worker.terminate();
+      worker = null;
+    }
+  };
 }
 
 render();
