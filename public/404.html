@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting...</title>
+    <script>
+      const segments = window.location.pathname.split('/').filter(Boolean);
+      const projectIndex = segments.indexOf('Sandbox');
+      const baseSegments =
+        projectIndex === -1 ? segments.slice(0, 1) : segments.slice(0, projectIndex + 1);
+      const routeSegments = segments.slice(baseSegments.length);
+      const basePath = `/${baseSegments.join('/')}/`;
+      const routePath = `/${routeSegments.join('/')}`;
+      const search = new URLSearchParams(window.location.search);
+
+      if (routePath !== '/') {
+        search.set('route', routePath);
+      }
+
+      window.location.replace(`${basePath}?${search.toString()}${window.location.hash}`);
+    </script>
+  </head>
+  <body></body>
+</html>

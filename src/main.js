@@ -44,6 +44,13 @@ function navigate(path) {
   render();
 }
 
+function restoreGitHubPagesRoute() {
+  const redirectedRoute = new URLSearchParams(window.location.search).get('route');
+  if (!redirectedRoute || !routes[redirectedRoute]) return;
+
+  window.history.replaceState({}, '', routePath(redirectedRoute));
+}
+
 function render() {
   cleanupCurrentRoute();
   cleanupCurrentRoute = () => {};
@@ -302,4 +309,5 @@ function setupBonsaiPage() {
   };
 }
 
+restoreGitHubPagesRoute();
 render();
