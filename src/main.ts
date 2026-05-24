@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import backgroundTextureUrl from "./assets/sheepdog/toy-background.png";
 import "./styles.css";
 
 const FIELD_WIDTH = 22;
@@ -20,7 +21,6 @@ const TARGET_MIN_DISTANCE = 3.1;
 const TARGET_GRAB_RADIUS = 1.65;
 const FIELD_MARGIN = 0.75;
 const CREAM = 0xfff3c7;
-const BACKGROUND_TEXTURE_URL = "/sheepdog/toy-background.png";
 const BACKGROUND_ASPECT = 941 / 1672;
 const BACKGROUND_PLANE_WIDTH = FIELD_WIDTH + 5.5;
 const BACKGROUND_PLANE_HEIGHT = BACKGROUND_PLANE_WIDTH / BACKGROUND_ASPECT;
@@ -129,7 +129,7 @@ function setupLights() {
 }
 
 function buildField() {
-  const backgroundTexture = new THREE.TextureLoader().load(BACKGROUND_TEXTURE_URL);
+  const backgroundTexture = new THREE.TextureLoader().load(backgroundTextureUrl);
   backgroundTexture.colorSpace = THREE.SRGBColorSpace;
   backgroundTexture.minFilter = THREE.LinearFilter;
   backgroundTexture.magFilter = THREE.LinearFilter;
