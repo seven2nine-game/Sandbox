@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sheepdog Rush</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="game"></div>
+      <div class="hud" aria-live="polite">
+        <div class="score score-p1">
+          <span>PLAYER 1</span>
+          <strong id="score-p1">0</strong>
+        </div>
+        <div class="timer">
+          <span>TIME</span>
+          <strong id="timer">90</strong>
+        </div>
+        <div class="score score-p2">
+          <span>PLAYER 2</span>
+          <strong id="score-p2">0</strong>
+        </div>
+      </div>
+      <button id="restart" class="restart" type="button">Restart</button>
+      <div id="message" class="message" hidden>
+        <strong id="result-title"></strong>
+        <span id="result-detail"></span>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

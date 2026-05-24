@@ -8,6 +8,7 @@ export default defineConfig({
       input: {
         main: 'index.html',
         bonsai: 'bonsai/index.html',
+        sheepdog: 'sheepdog/index.html',
       },
     },
   },
