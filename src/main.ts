@@ -4,6 +4,7 @@ import "./styles.css";
 const FIELD_WIDTH = 22;
 const FIELD_HEIGHT = 34;
 const GOAL_DEPTH = 4.4;
+const GOAL_SCORING_DEPTH = 2.6;
 const SHEEP_COUNT = 50;
 const MATCH_SECONDS = 90;
 const DOG_MAX_SPEED = 9.2;
@@ -18,6 +19,11 @@ const SHEEP_SCORE_DURATION = 0.72;
 const TARGET_MIN_DISTANCE = 3.1;
 const TARGET_GRAB_RADIUS = 1.65;
 const FIELD_MARGIN = 0.75;
+const CREAM = 0xfff3c7;
+const BACKGROUND_TEXTURE_URL = "/sheepdog/toy-background.png";
+const BACKGROUND_ASPECT = 941 / 1672;
+const BACKGROUND_PLANE_WIDTH = FIELD_WIDTH + 5.5;
+const BACKGROUND_PLANE_HEIGHT = BACKGROUND_PLANE_WIDTH / BACKGROUND_ASPECT;
 
 type PlayerIndex = 0 | 1;
 
@@ -62,8 +68,8 @@ const resultTitle = requireElement<HTMLElement>("#result-title");
 const resultDetail = requireElement<HTMLElement>("#result-detail");
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x17271f);
-scene.fog = new THREE.Fog(0x17271f, 34, 58);
+scene.background = new THREE.Color(0xa9dcff);
+scene.fog = new THREE.Fog(0xa9dcff, 38, 66);
 
 const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
 camera.position.set(0, 25, 18);
@@ -108,11 +114,11 @@ restartButton.addEventListener("click", resetGame);
 requestAnimationFrame(tick);
 
 function setupLights() {
-  const hemi = new THREE.HemisphereLight(0xfff6d6, 0x244331, 2.1);
+  const hemi = new THREE.HemisphereLight(0xfff7dc, 0x66a86a, 2.45);
   scene.add(hemi);
 
-  const sun = new THREE.DirectionalLight(0xffffff, 2.4);
-  sun.position.set(-8, 18, 10);
+  const sun = new THREE.DirectionalLight(0xffffff, 2.9);
+  sun.position.set(-9, 22, 12);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
   sun.shadow.camera.left = -24;
@@ -123,58 +129,24 @@ function setupLights() {
 }
 
 function buildField() {
+  const backgroundTexture = new THREE.TextureLoader().load(BACKGROUND_TEXTURE_URL);
+  backgroundTexture.colorSpace = THREE.SRGBColorSpace;
+  backgroundTexture.minFilter = THREE.LinearFilter;
+  backgroundTexture.magFilter = THREE.LinearFilter;
   const field = new THREE.Mesh(
-    new THREE.BoxGeometry(FIELD_WIDTH, 0.35, FIELD_HEIGHT),
-    new THREE.MeshStandardMaterial({ color: 0x3f8a48, roughness: 0.9 }),
+    new THREE.PlaneGeometry(BACKGROUND_PLANE_WIDTH, BACKGROUND_PLANE_HEIGHT),
+    new THREE.MeshBasicMaterial({ map: backgroundTexture }),
   );
-  field.position.y = -0.2;
-  field.receiveShadow = true;
+  field.rotation.x = -Math.PI / 2;
+  field.position.y = -0.04;
   scene.add(field);
-
-  addGoal(1, 0x38bdf8);
-  addGoal(-1, 0xff626a);
-  addFence();
-}
-
-function addGoal(side: -1 | 1, color: number) {
-  const z = side * (FIELD_HEIGHT / 2 - GOAL_DEPTH / 2);
-  const goalFloor = new THREE.Mesh(
-    new THREE.BoxGeometry(FIELD_WIDTH - 2.4, 0.04, GOAL_DEPTH),
-    new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.28, roughness: 0.7 }),
-  );
-  goalFloor.position.set(0, 0.03, z);
-  scene.add(goalFloor);
-
-  const railMaterial = new THREE.MeshStandardMaterial({ color, roughness: 0.45 });
-  for (const x of [-FIELD_WIDTH / 2 + 1.1, FIELD_WIDTH / 2 - 1.1]) {
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, GOAL_DEPTH), railMaterial);
-    rail.position.set(x, 0.35, z);
-    rail.castShadow = true;
-    scene.add(rail);
-  }
-}
-
-function addFence() {
-  const material = new THREE.MeshStandardMaterial({ color: 0xd8b06a, roughness: 0.65 });
-  const top = new THREE.Mesh(new THREE.BoxGeometry(FIELD_WIDTH + 0.8, 0.8, 0.32), material);
-  const bottom = top.clone();
-  const left = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.8, FIELD_HEIGHT + 0.8), material);
-  const right = left.clone();
-  top.position.set(0, 0.35, -FIELD_HEIGHT / 2 - 0.25);
-  bottom.position.set(0, 0.35, FIELD_HEIGHT / 2 + 0.25);
-  left.position.set(-FIELD_WIDTH / 2 - 0.25, 0.35, 0);
-  right.position.set(FIELD_WIDTH / 2 + 0.25, 0.35, 0);
-  for (const rail of [top, bottom, left, right]) {
-    rail.castShadow = true;
-    rail.receiveShadow = true;
-    scene.add(rail);
-  }
 }
 
 function createPlayer(index: PlayerIndex, color: number, accent: string, startZ: number): Player {
   const dog = new THREE.Group();
   const bodyMaterial = new THREE.MeshStandardMaterial({ color, roughness: 0.45 });
   const darkMaterial = new THREE.MeshStandardMaterial({ color: 0x1f2933, roughness: 0.5 });
+  const earMaterial = new THREE.MeshStandardMaterial({ color: 0x45352b, roughness: 0.58 });
   const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.48, 0.9, 6, 12), bodyMaterial);
   body.rotation.z = Math.PI / 2;
   body.position.y = 0.58;
@@ -189,6 +161,20 @@ function createPlayer(index: PlayerIndex, color: number, accent: string, startZ:
   const nose = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), darkMaterial);
   nose.position.set(1.0, 0.76, 0);
   dog.add(nose);
+
+  for (const z of [-0.26, 0.26]) {
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), earMaterial);
+    ear.position.set(0.52, 1.02, z);
+    ear.scale.set(0.72, 1.25, 0.72);
+    ear.castShadow = true;
+    dog.add(ear);
+  }
+
+  const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.56, 5, 8), bodyMaterial);
+  tail.position.set(-0.66, 0.76, 0);
+  tail.rotation.z = -0.7;
+  tail.castShadow = true;
+  dog.add(tail);
 
   dog.position.set(index === 0 ? -2.6 : 2.6, 0, startZ);
   scene.add(dog);
@@ -222,8 +208,8 @@ function createPlayer(index: PlayerIndex, color: number, accent: string, startZ:
 function createTargetRing(color: number) {
   const group = new THREE.Group();
   const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(0.68, 0.07, 8, 40),
-    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.18, roughness: 0.35 }),
+    new THREE.TorusGeometry(0.72, 0.08, 8, 48),
+    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.28, roughness: 0.25 }),
   );
   ring.rotation.x = Math.PI / 2;
   ring.position.y = 0.08;
@@ -240,8 +226,9 @@ function createTargetRing(color: number) {
 }
 
 function createSheep() {
-  const woolMaterial = new THREE.MeshStandardMaterial({ color: 0xfff8e8, roughness: 0.95 });
-  const faceMaterial = new THREE.MeshStandardMaterial({ color: 0x2d2520, roughness: 0.7 });
+  const woolMaterial = new THREE.MeshStandardMaterial({ color: 0xfff8e8, roughness: 0.88 });
+  const woolAccentMaterial = new THREE.MeshStandardMaterial({ color: CREAM, roughness: 0.9 });
+  const faceMaterial = new THREE.MeshStandardMaterial({ color: 0x3a3028, roughness: 0.62 });
   for (let i = 0; i < SHEEP_COUNT; i += 1) {
     const body = new THREE.Group();
     const wool = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 10), woolMaterial);
@@ -249,6 +236,19 @@ function createSheep() {
     wool.position.y = 0.44;
     wool.castShadow = true;
     body.add(wool);
+
+    for (const [x, z, scale] of [
+      [-0.26, -0.25, 0.72],
+      [-0.25, 0.24, 0.68],
+      [0.12, -0.3, 0.62],
+      [0.1, 0.3, 0.62],
+    ]) {
+      const puff = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), woolAccentMaterial);
+      puff.position.set(x, 0.57, z);
+      puff.scale.setScalar(scale);
+      puff.castShadow = true;
+      body.add(puff);
+    }
 
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 8), faceMaterial);
     head.position.set(0.42, 0.46, 0);
@@ -387,9 +387,9 @@ function checkGoal(item: Sheep) {
   const z = item.body.position.z;
   const insideGoalX = Math.abs(x) < FIELD_WIDTH / 2 - 1.2;
   if (!insideGoalX) return;
-  if (z > FIELD_HEIGHT / 2 - GOAL_DEPTH) {
+  if (z > FIELD_HEIGHT / 2 - GOAL_SCORING_DEPTH) {
     scoreSheep(item, 0);
-  } else if (z < -FIELD_HEIGHT / 2 + GOAL_DEPTH) {
+  } else if (z < -FIELD_HEIGHT / 2 + GOAL_SCORING_DEPTH) {
     scoreSheep(item, 1);
   }
 }
