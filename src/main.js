@@ -15,6 +15,13 @@ app.innerHTML = `
           </span>
           <span aria-hidden="true">→</span>
         </a>
+        <a class="${panelCard} flex items-center justify-between gap-4 p-4 no-underline" href="./sheepdog/">
+          <span>
+            <strong class="block">Sheepdog Rush</strong>
+            <small class="mt-1 block leading-[1.4] text-[#aeb8c4]">Play a two-player sheep herding game in portrait mode.</small>
+          </span>
+          <span aria-hidden="true">→</span>
+        </a>
       </nav>
     </section>
   </main>
