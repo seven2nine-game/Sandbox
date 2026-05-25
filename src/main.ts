@@ -10,15 +10,18 @@ const SHEEP_COUNT = 50;
 const MATCH_SECONDS = 90;
 const DOG_MAX_SPEED = 9.2;
 const DOG_ACCELERATION = 34;
-const SHEEP_MAX_SPEED = 6.3;
-const SHEEP_REPEL_RADIUS = 5.2;
-const SHEEP_SEPARATION_RADIUS = 1.65;
+const SHEEP_MAX_SPEED = 7.2;
+const SHEEP_REPEL_RADIUS = 6.4;
+const SHEEP_REPEL_FORCE = 46;
+const SHEEP_SEPARATION_RADIUS = 1.9;
+const SHEEP_SEPARATION_FORCE = 7.2;
 const SHEEP_WANDER_FORCE = 1.6;
 const SHEEP_WANDER_INTERVAL_MIN = 0.8;
 const SHEEP_WANDER_INTERVAL_MAX = 2.2;
 const SHEEP_SCORE_DURATION = 0.72;
 const TARGET_MIN_DISTANCE = 3.1;
 const TARGET_GRAB_RADIUS = 1.65;
+const TARGET_DRAG_READY_DISTANCE = 0.65;
 const FIELD_MARGIN = 0.75;
 const DOG_SCALE = 1.45;
 const SHEEP_SCALE = 1.55;
@@ -41,7 +44,7 @@ type Player = {
   dogVelocity: THREE.Vector3;
   target: THREE.Vector3;
   targetRing: THREE.Group;
-  leash: THREE.Line;
+  leash: THREE.Mesh;
 };
 
 type Sheep = {
@@ -72,8 +75,8 @@ const resultTitle = requireElement<HTMLElement>("#result-title");
 const resultDetail = requireElement<HTMLElement>("#result-detail");
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xa9dcff);
-scene.fog = new THREE.Fog(0xa9dcff, 38, 66);
+scene.background = new THREE.Color(0x87c94a);
+scene.fog = new THREE.Fog(0x87c94a, 38, 66);
 
 const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
 camera.position.set(0, 25, 18);
@@ -189,11 +192,12 @@ function createPlayer(index: PlayerIndex, color: number, accent: string, startZ:
   targetRing.position.copy(target);
   scene.add(targetRing);
 
-  const leashGeometry = new THREE.BufferGeometry().setFromPoints([dog.position, target]);
-  const leash = new THREE.Line(
-    leashGeometry,
-    new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.46 }),
+  const leash = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.08, 1, 14),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.78 }),
   );
+  leash.position.y = 0.2;
+  leash.visible = false;
   scene.add(leash);
 
   return {
@@ -310,6 +314,11 @@ function tick() {
 
 function updatePlayers(dt: number) {
   for (const player of players) {
+    if (player.pointerId !== null) {
+      player.dogVelocity.set(0, 0, 0);
+      continue;
+    }
+
     tmpVector.copy(player.target).sub(player.dog.position);
     tmpVector.y = 0;
     const distance = tmpVector.length();
@@ -341,7 +350,7 @@ function updateSheep(dt: number) {
       tmpVector2.y = 0;
       const distance = Math.max(tmpVector2.length(), 0.01);
       if (distance < SHEEP_REPEL_RADIUS) {
-        force.addScaledVector(tmpVector2.normalize(), (1 - distance / SHEEP_REPEL_RADIUS) * 28);
+        force.addScaledVector(tmpVector2.normalize(), (1 - distance / SHEEP_REPEL_RADIUS) * SHEEP_REPEL_FORCE);
       }
     }
 
@@ -351,7 +360,7 @@ function updateSheep(dt: number) {
       tmpVector2.y = 0;
       const distance = Math.max(tmpVector2.length(), 0.01);
       if (distance < SHEEP_SEPARATION_RADIUS) {
-        force.addScaledVector(tmpVector2.normalize(), (1 - distance / SHEEP_SEPARATION_RADIUS) * 5.5);
+        force.addScaledVector(tmpVector2.normalize(), (1 - distance / SHEEP_SEPARATION_RADIUS) * SHEEP_SEPARATION_FORCE);
       }
     }
 
@@ -394,9 +403,9 @@ function checkGoal(item: Sheep) {
   const insideGoalX = Math.abs(x) < FIELD_WIDTH / 2 - 1.2;
   if (!insideGoalX) return;
   if (z > FIELD_HEIGHT / 2 - GOAL_SCORING_DEPTH) {
-    scoreSheep(item, 0);
-  } else if (z < -FIELD_HEIGHT / 2 + GOAL_SCORING_DEPTH) {
     scoreSheep(item, 1);
+  } else if (z < -FIELD_HEIGHT / 2 + GOAL_SCORING_DEPTH) {
+    scoreSheep(item, 0);
   }
 }
 
@@ -528,10 +537,22 @@ function updateVisuals() {
     player.targetRing.position.copy(player.target);
     const activeScale = player.pointerId === null ? 1 : 1.18;
     player.targetRing.scale.lerp(tmpVector.set(activeScale, activeScale, activeScale), 0.22);
-    const positions = player.leash.geometry.attributes.position as THREE.BufferAttribute;
-    positions.setXYZ(0, player.dog.position.x, 0.18, player.dog.position.z);
-    positions.setXYZ(1, player.target.x, 0.18, player.target.z);
-    positions.needsUpdate = true;
+    tmpVector2.copy(player.target).sub(player.dog.position);
+    tmpVector2.y = 0;
+    const leashLength = tmpVector2.length();
+    player.leash.visible = player.pointerId !== null && leashLength > 0.05;
+    if (player.leash.visible) {
+      player.leash.position
+        .copy(player.dog.position)
+        .add(player.target)
+        .multiplyScalar(0.5);
+      player.leash.position.y = 0.2;
+      player.leash.scale.set(1, leashLength, 1);
+      player.leash.quaternion.setFromUnitVectors(
+        tmpVector.set(0, 1, 0),
+        tmpVector2.normalize(),
+      );
+    }
   }
 }
 
@@ -562,7 +583,10 @@ function onPointerDown(event: PointerEvent) {
   if (gameOver) return;
   const point = pointerToWorld(event);
   const available = players.filter(
-    (player) => player.pointerId === null && player.target.distanceTo(point) <= TARGET_GRAB_RADIUS,
+    (player) =>
+      player.pointerId === null &&
+      canDragTarget(player) &&
+      player.target.distanceTo(point) <= TARGET_GRAB_RADIUS,
   );
   if (available.length === 0) return;
   available.sort((a, b) => a.target.distanceToSquared(point) - b.target.distanceToSquared(point));
@@ -607,6 +631,12 @@ function moveTarget(player: Player, point: THREE.Vector3) {
   }
 }
 
+function canDragTarget(player: Player) {
+  tmpVector.copy(player.target).sub(player.dog.position);
+  tmpVector.y = 0;
+  return tmpVector.length() <= TARGET_DRAG_READY_DISTANCE;
+}
+
 function pointerToWorld(event: PointerEvent) {
   const rect = renderer.domElement.getBoundingClientRect();
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -634,7 +664,7 @@ function resize() {
   const height = window.innerHeight;
   const aspect = width / height;
   const fieldAspect = FIELD_WIDTH / FIELD_HEIGHT;
-  const viewHeight = aspect > fieldAspect ? FIELD_HEIGHT + 6 : (FIELD_WIDTH + 6) / aspect;
+  const viewHeight = aspect > fieldAspect ? FIELD_HEIGHT + 2 : (FIELD_WIDTH + 1) / aspect;
   const viewWidth = viewHeight * aspect;
   camera.left = -viewWidth / 2;
   camera.right = viewWidth / 2;
