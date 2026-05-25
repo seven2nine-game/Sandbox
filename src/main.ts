@@ -12,7 +12,7 @@ const DOG_MAX_SPEED = 9.2;
 const DOG_ACCELERATION = 34;
 const SHEEP_MAX_SPEED = 6.3;
 const SHEEP_REPEL_RADIUS = 5.2;
-const SHEEP_SEPARATION_RADIUS = 1.15;
+const SHEEP_SEPARATION_RADIUS = 1.65;
 const SHEEP_WANDER_FORCE = 1.6;
 const SHEEP_WANDER_INTERVAL_MIN = 0.8;
 const SHEEP_WANDER_INTERVAL_MAX = 2.2;
@@ -20,6 +20,10 @@ const SHEEP_SCORE_DURATION = 0.72;
 const TARGET_MIN_DISTANCE = 3.1;
 const TARGET_GRAB_RADIUS = 1.65;
 const FIELD_MARGIN = 0.75;
+const DOG_SCALE = 1.45;
+const SHEEP_SCALE = 1.55;
+const SHEEP_SPAWN_HALF_WIDTH = 8.2;
+const SHEEP_SPAWN_HALF_HEIGHT = 9.0;
 const CREAM = 0xfff3c7;
 const BACKGROUND_ASPECT = 941 / 1672;
 const BACKGROUND_PLANE_WIDTH = FIELD_WIDTH + 5.5;
@@ -176,6 +180,7 @@ function createPlayer(index: PlayerIndex, color: number, accent: string, startZ:
   tail.castShadow = true;
   dog.add(tail);
 
+  dog.scale.setScalar(DOG_SCALE);
   dog.position.set(index === 0 ? -2.6 : 2.6, 0, startZ);
   scene.add(dog);
 
@@ -231,6 +236,7 @@ function createSheep() {
   const faceMaterial = new THREE.MeshStandardMaterial({ color: 0x3a3028, roughness: 0.62 });
   for (let i = 0; i < SHEEP_COUNT; i += 1) {
     const body = new THREE.Group();
+    body.scale.setScalar(SHEEP_SCALE);
     const wool = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 10), woolMaterial);
     wool.scale.set(1.2, 0.88, 0.96);
     wool.position.y = 0.44;
@@ -364,7 +370,7 @@ function updateSheep(dt: number) {
     item.velocity.multiplyScalar(0.91);
     clampLength(item.velocity, SHEEP_MAX_SPEED);
     item.body.position.addScaledVector(item.velocity, dt);
-    clampToField(item.body.position, 0.45);
+    clampToField(item.body.position, 0.75);
     if (item.velocity.lengthSq() > 0.05) {
       item.body.rotation.y = Math.atan2(-item.velocity.z, item.velocity.x);
     }
@@ -409,7 +415,7 @@ function updateScoringSheep(item: Sheep, dt: number) {
   item.scoringTimer = Math.max(0, item.scoringTimer - dt);
   const progress = 1 - item.scoringTimer / SHEEP_SCORE_DURATION;
   const lift = Math.sin(progress * Math.PI) * 0.9;
-  const shrink = THREE.MathUtils.lerp(1, 0.35, progress);
+  const shrink = THREE.MathUtils.lerp(SHEEP_SCALE, SHEEP_SCALE * 0.35, progress);
   item.body.position.copy(item.scoringStart);
   item.body.position.y = lift;
   item.body.scale.setScalar(shrink);
@@ -420,8 +426,12 @@ function updateScoringSheep(item: Sheep, dt: number) {
 }
 
 function resetSheep(item: Sheep) {
-  item.body.position.set(randomBetween(-5.8, 5.8), 0, randomBetween(-4.8, 4.8));
-  item.body.scale.setScalar(1);
+  item.body.position.set(
+    randomBetween(-SHEEP_SPAWN_HALF_WIDTH, SHEEP_SPAWN_HALF_WIDTH),
+    0,
+    randomBetween(-SHEEP_SPAWN_HALF_HEIGHT, SHEEP_SPAWN_HALF_HEIGHT),
+  );
+  item.body.scale.setScalar(SHEEP_SCALE);
   item.velocity.set(randomBetween(-0.3, 0.3), 0, randomBetween(-0.3, 0.3));
   item.wander.set(randomBetween(-1, 1), 0, randomBetween(-1, 1));
   if (item.wander.lengthSq() > 0.001) {
