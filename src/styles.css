@@ -53,13 +53,13 @@ canvas {
 
 .score-p1 {
   left: 50%;
-  bottom: max(14px, env(safe-area-inset-bottom));
+  top: max(14px, env(safe-area-inset-top));
   transform: translateX(-50%);
 }
 
 .score-p2 {
   left: 50%;
-  top: max(14px, env(safe-area-inset-top));
+  bottom: max(14px, env(safe-area-inset-bottom));
   transform: translateX(-50%) rotate(180deg);
 }
 
@@ -163,11 +163,11 @@ canvas {
   }
 
   .score-p1 {
-    bottom: max(10px, env(safe-area-inset-bottom));
+    top: max(10px, env(safe-area-inset-top));
   }
 
   .score-p2 {
-    top: max(10px, env(safe-area-inset-top));
+    bottom: max(10px, env(safe-area-inset-bottom));
   }
 
   .timer {
